@@ -1,4 +1,5 @@
 ﻿import os
+import json
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -15,12 +16,13 @@ BASE_NAME = "droit"
 VIDEO_PATH = os.path.join(BASE_DIR, f"{BASE_NAME}.mp4")
 CSV_PATH = os.path.join(BASE_DIR, f"{BASE_NAME}.csv")  # 第一列是帧号
 OUTPUT_DIR = os.path.join(BASE_DIR, f"{BASE_NAME}_skeleton")
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, f"{BASE_NAME}_all.npy")
+META_FILE = os.path.join(OUTPUT_DIR, f"{BASE_NAME}_meta.json")
 WINDOW = 35    # 固定 35 帧 (包含 t0)
 YOLO_WEIGHT = os.path.join(BASE_DIR, "yolov8n.pt")
 DETECTION_CONF = 0.35
 ROI_MARGIN = 0.12
 ROI_MIN_SIZE = 64
+BATCH_OUTPUT = 10
 # =========================
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -203,6 +205,30 @@ if not samples:
     raise RuntimeError("[ERROR] 没有成功生成任何样本")
 
 X = np.stack(samples, axis=0)
-np.save(OUTPUT_FILE, X)
-print(f"[INFO] 已保存 {X.shape} 到 {OUTPUT_FILE}")
-print("对应的击球帧列表:", valid_t0)
+num_samples = X.shape[0]
+num_batches = (num_samples + BATCH_OUTPUT - 1) // BATCH_OUTPUT
+
+print(f"[INFO] 总样本数 {num_samples}，将拆分为 {num_batches} 个 npy 文件，每个最多 {BATCH_OUTPUT} 条。")
+
+for batch_idx in range(num_batches):
+    start = batch_idx * BATCH_OUTPUT
+    end = min(start + BATCH_OUTPUT, num_samples)
+    chunk = X[start:end]
+    out_name = f"{BASE_NAME}_{batch_idx:03d}.npy"
+    out_path = os.path.join(OUTPUT_DIR, out_name)
+    np.save(out_path, chunk)
+    hits = valid_t0[start:end]
+    print(f"[INFO] 已保存 {chunk.shape} -> {out_path}, 含 t0 {hits}")
+
+metadata = {
+    "base_name": BASE_NAME,
+    "window": WINDOW,
+    "num_samples": num_samples,
+    "batch_size": BATCH_OUTPUT,
+    "t0": valid_t0,
+}
+with open(META_FILE, "w", encoding="utf-8") as f:
+    json.dump(metadata, f, ensure_ascii=False, indent=2)
+print(f"[INFO] 元数据已写入 {META_FILE}")
+
+print("[INFO] 全部完成。")
