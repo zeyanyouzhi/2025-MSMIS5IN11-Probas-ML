@@ -31,7 +31,7 @@ namespace MotifFinder
 
         public static void Main()
         {
-            Rand.Restart(1337);
+            //Rand.Restart(1337);
 
             Console.WriteLine("==================================================");
             Console.WriteLine("   MOTIF FINDER - AUTOMATED STRESS TESTS");
@@ -46,7 +46,7 @@ namespace MotifFinder
             Console.WriteLine("--------------------------------------------------");
 
             int fixedN = 30;
-            int[] testLengths = { 25, 100, 500, 1000 };
+            int[] testLengths = { 25, 50, 100, 200 };
 
             foreach (var len in testLengths)
             {
@@ -64,7 +64,7 @@ namespace MotifFinder
             Console.WriteLine("    Longueur de Séquence (L) fixée à 50");
             Console.WriteLine("--------------------------------------------------");
 
-            int fixedL = 50;
+            int fixedL = 30;
             int[] testCounts = { 5, 10, 20, 50 };
 
             foreach (var count in testCounts)
